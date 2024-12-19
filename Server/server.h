@@ -16,6 +16,7 @@
 #define BIDS            "BIDS"
 #define ASSET           "ASSET"
 
+
 #define PWD_SUFFIX      "_password.txt"
 #define LOGIN_SUFFIX    "_login.txt"
 #define TXT_SUFFIX      ".txt"
@@ -50,32 +51,9 @@
 
 #define READ_WRITE_RATE 1024
 
+#define YES 1
+#define NO 0
 
-typedef struct {
-    char host_uid[UID_LEN + 1];
-    char name[MAX_NAME + 1];
-    char asset[MAX_FNAME_LEN + 1];
-    int start_value;
-    char start_time[20];
-    int time_active;
-    int active;
-    struct end {
-        char end_time[20];
-        int end_sec_time;
-    } end;
-} auction;
-
-typedef struct {
-    char bidder_uid[UID_LEN + 1];
-    int bid_value;
-    char bid_time[20];
-    int bid_sec_time;
-} bid_list;
-
-typedef struct {
-    char auction_code[4];
-    char active[2];
-} auction_list;
 
 typedef struct client {
     char* uid;

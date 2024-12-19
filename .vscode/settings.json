@@ -50,7 +50,13 @@
         "socket.h": "c",
         "start.h": "c",
         "getopt_core.h": "c",
-        "constants.h": "c"
+        "constants.h": "c",
+        "stdio.h": "c",
+        "debug.h": "c",
+        "stat.h": "c",
+        "inet.h": "c",
+        "show_trials.h": "c",
+        "dirent.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

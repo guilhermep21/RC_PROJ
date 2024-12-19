@@ -19,8 +19,11 @@
 
 
 player *user;
-char *ip = "tejo.tecnico.ulisboa.pt";
-char *port = "58011";
+
+char *ip = "localhost";
+char *port = "58074";
+//char *ip = "tejo.tecnico.ulisboa.pt";
+//char *port = "58011";
 
 
 void validate_args(int argc, char** argv) {
@@ -154,8 +157,6 @@ void check_UDP_cmd(char* input, char* cmd){
         if(process_debug(input, &user, &request) == -1)
             fprintf(stderr, "[ERROR]: debug\n");
     }
-    else
-        printf("nao implementado\n");
 
 
     if (request != NULL){
@@ -167,7 +168,8 @@ void check_UDP_cmd(char* input, char* cmd){
             return;
         }
 
-        UDP_response(udp_buffer, &user);    
+        UDP_response(udp_buffer, &user);   
+        free(udp_buffer); 
     }  
 }
 

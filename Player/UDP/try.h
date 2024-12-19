@@ -8,7 +8,7 @@
 #include "../player.h"
 
 #define TRY_CMD "TRY"
-#define TRY_LEN 11
+#define TRY_LEN 13
 
 int process_try(char* input, player **user, char** response);
 

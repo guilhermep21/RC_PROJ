@@ -1,32 +1,43 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
-#define GAMES_DIR       "GAMES"
-#define SCORES_DIR    "SCORES"
+#define OK_STATUS           "OK"
+#define NOK_STATUS          "NOK"
+#define ERR_STATUS          "ERR"
+#define DUP_STATUS          "DUP"
+#define INV_STATUS          "INV"
+#define ENT_STATUS          "ENT"
 
-#define OK_STATUS       "OK"
-#define NOK_STATUS      "NOK"
-#define ERR_STATUS      "ERR"
 
-#define ONGOING         "1"
-#define STOPPED         "0"
+#define ONGOING             "1"
+#define STOPPED             "0"
 
-#define ANSWER_LEN      4
+#define ANSWER_LEN          4
 
-#define GAME_FILE_LEN   7
+#define SERVER_IP           "tejo.tecnico.ulisboa.pt"
+#define DEFAULT_PORT        "58000"
 
-#define SERVER_IP       "tejo.tecnico.ulisboa.pt"
-#define DEFAULT_PORT    "58000"
+#define LOCAL_SERVER_IP     "localhost"
 
-#define LOCAL_SERVER_IP "localhost"
+#define TRUE                1
+#define FALSE               0
 
-#define TRUE            1
-#define FALSE           0
+#define PLID_LEN            6
+#define TRY_CMD_LEN         14
 
-#define PLID_LEN        6
-#define TRY_CMD_LEN     14
+#define FILE_NAME_MAX_LEN   24
 
-#define READ_WRITE_RATE 1024
+#define GAME_FILE_PREFIX    "GAME_"
+#define GAME_DIR            "GAMES/"
+
+#define SCORE_DIR           "../SCORES/"
+
+#define SCORE_FILE_DIR_LEN  36
+
+#define GAME_FILE_LEN       11
+#define GAME_DIR_LEN        6
+
+#define READ_WRITE_RATE     1024
 
 
 

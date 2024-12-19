@@ -11,14 +11,17 @@
 #include <sys/stat.h>
 #include <time.h>
 #include "quit.h"
+#include "../constants.h"
 
-void write_on_file (FILE *file, char *game_file_dir, int plid, time_t current_seconds) {
+void write_on_file_quit (char *game_file_dir, int plid, time_t current_seconds) {
+    FILE *file = fopen(game_file_dir, "a+");
 
     struct tm *utc_time = gmtime(&current_seconds);
     fseek(file, 37, SEEK_SET);
     long init_seconds;
     fscanf(file,"%ld", &init_seconds);
     long seconds_converted = (long)current_seconds - init_seconds;
+
 
     // write YYYY-MM-DD HH:MM:SS s 
     fprintf(file, "%04d-%02d-%02d %02d:%02d:%02d %ld", utc_time->tm_year + 1900, utc_time->tm_mon +1, utc_time->tm_mday,
@@ -28,7 +31,7 @@ void write_on_file (FILE *file, char *game_file_dir, int plid, time_t current_se
     char *new_dir = malloc(44 * sizeof(char));
     sprintf(new_dir, "%s%d/%04d%02d%02d_%02d%02d%02d_Q", GAME_DIR, plid, utc_time->tm_year + 1900, utc_time->tm_mon +1, utc_time->tm_mday,
     utc_time->tm_hour, utc_time->tm_min, utc_time->tm_sec);
-    new_dir[strlen(new_dir)] == '\0';
+    new_dir[strlen(new_dir)] = '\0';
 
     if(rename(game_file_dir, new_dir) == -1){
         perror("Erro ao mover ficheiro.\n");
@@ -43,27 +46,27 @@ void write_on_file (FILE *file, char *game_file_dir, int plid, time_t current_se
 void process_player_quit(char *input, char **response, time_t current_seconds) {
     char buffer[64];
     strcpy(buffer, input);
-    strtok(buffer, " "); // get rid of cmd
-    int plid = atoi(strtok(NULL, " "));
+    int plid = atoi(strtok(buffer, " "));
     char game_file_dir[GAME_DIR_LEN + GAME_FILE_LEN + 1];
     sprintf(game_file_dir, "%s%s%d", GAME_DIR, GAME_FILE_PREFIX, plid);
 
-    FILE *file = fopen(game_file_dir, "a+");
     
-    if(file == NULL){
+    if(access(game_file_dir, F_OK) != 0){
         //Player is not in game
-        *response = (char*) malloc(sizeof(char) * NOK_LEN);
+        *response = (char*) malloc(sizeof(char) * QUT_NOK_LEN);
         sprintf(*response, "%s %s\n", QUIT_RESPONSE, NOK_STATUS);
         return;
         
     }
-    *response = (char*)malloc(sizeof(char) * OK_LEN);
+    *response = (char*)malloc(sizeof(char) * QUT_OK_LEN);
     sprintf(*response, "%s %s\n", QUIT_RESPONSE, OK_STATUS);
 
-    write_on_file(file, game_file_dir, plid, current_seconds);
+    write_on_file_quit(game_file_dir, plid, current_seconds);
 
 
 }
+
+/*
 int main() {
 
     time_t current_seconds = time(NULL);
@@ -72,4 +75,4 @@ int main() {
     char *response;
     process_player_quit(input, &response, current_seconds);
     free(response);
-}
+}*/

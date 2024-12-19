@@ -11,7 +11,14 @@
 #include <sys/stat.h>
 #include "try.h"
 #include <time.h>
-//#include "../constants.h"
+#include "../constants.h"
+
+int calculate_score(long seconds, int nr_tries) {
+    int score = 100;
+    score -= (nr_tries - 1) * (100/8);
+    score -= seconds/100;
+    return score;
+}
 
 int check_tries (FILE *file, char *trial) {
     char buffer[256]; // Buffer for a line
@@ -80,15 +87,29 @@ void answer_check (char *trial, char *answer, char **ans_check) {
     sprintf(*ans_check, "%d %d", blacks, whites);
 }
 
-void write_on_file (FILE *file,char *game_file_dir ,char *trial, char **ans_check, int plid, time_t current_seconds, int nr_tries) {
+void write_on_file_try (FILE *file, char *game_file_dir ,char *trial, char **ans_check, int plid, time_t current_seconds, int nr_tries) {
     char* answer = malloc(4 * sizeof(char));
-
+    char *mode_word;
+    char MODE;
+    fseek(file, 6, SEEK_SET);
+    fscanf(file, "%c", &MODE);
+    
+    if(MODE == 'P'){
+        mode_word = malloc(5 * sizeof(char));
+        sprintf(mode_word, "PLAY");
+    }
+    else{
+        mode_word = malloc(6 * sizeof(char));
+        sprintf(mode_word, "DEBUG");
+    }
+    
     fseek(file, 8, SEEK_SET);
     fscanf(file, "%s", answer);
     fseek(file, 37, SEEK_SET);
     long init_seconds;
     fscanf(file,"%ld", &init_seconds);
     long seconds_converted = (long)current_seconds - init_seconds;
+
 
 
     answer_check(trial, answer, ans_check);
@@ -109,13 +130,26 @@ void write_on_file (FILE *file,char *game_file_dir ,char *trial, char **ans_chec
         char *new_dir = malloc(44 * sizeof(char));
         sprintf(new_dir, "%s%d/%04d%02d%02d_%02d%02d%02d_W", GAME_DIR, plid, utc_time->tm_year + 1900, utc_time->tm_mon +1, utc_time->tm_mday,
         utc_time->tm_hour, utc_time->tm_min, utc_time->tm_sec);
-        new_dir[strlen(new_dir)] == '\0';
+        new_dir[strlen(new_dir)] = '\0';
 
         if(rename(game_file_dir, new_dir) == -1){
             perror("Erro ao mover ficheiro.\n");
         }
         free(new_dir);
 
+        int score = calculate_score(seconds_converted, nr_tries);
+
+        char score_file_dir[SCORE_FILE_DIR_LEN];
+        sprintf(score_file_dir, "%s%03d_%d_%04d%02d%02d_%02d%02d%02d", SCORE_DIR, score, plid,
+        utc_time->tm_year + 1900, utc_time->tm_mon +1, utc_time->tm_mday, utc_time->tm_hour, utc_time->tm_min, utc_time->tm_sec);
+        score_file_dir[strlen(score_file_dir)] = '\0';
+        printf("SCOREDIR: %s\n", score_file_dir);
+        FILE *score_file = fopen(score_file_dir, "a+"); //open file
+
+        fprintf(score_file, "%03d %d %s %d %s", score, plid, trial, nr_tries, mode_word);
+
+        free(mode_word);
+        fclose(score_file);
     }
 
     else if (nr_tries == 8) {
@@ -126,7 +160,7 @@ void write_on_file (FILE *file,char *game_file_dir ,char *trial, char **ans_chec
         char *new_dir = malloc(44 * sizeof(char));
         sprintf(new_dir, "%s%d/%04d%02d%02d_%02d%02d%02d_F", GAME_DIR, plid, utc_time->tm_year + 1900, utc_time->tm_mon +1, utc_time->tm_mday,
         utc_time->tm_hour, utc_time->tm_min, utc_time->tm_sec);
-        new_dir[strlen(new_dir)] == '\0';
+        new_dir[strlen(new_dir)] = '\0';
 
         if(rename(game_file_dir, new_dir) == -1){
             perror("Erro ao mover ficheiro.\n");
@@ -143,13 +177,11 @@ void write_on_file (FILE *file,char *game_file_dir ,char *trial, char **ans_chec
 void process_player_try(char *input, char **response, time_t current_seconds){
     //input e do tipo: TRY PLID C C C C nr_tries
     char buffer[64];
-    char game_file_dir[GAME_DIR_LEN + GAME_FILE_LEN + 1];
     strcpy(buffer, input);
-    buffer[strlen(input)] == '\0';
+    buffer[strlen(input)] = '\0';
     char *trial = malloc(5 * sizeof(char));
     char *ans_check = malloc(5 * sizeof(char));
-    strtok(buffer, " "); //removing cmd
-    int plid = atoi(strtok(NULL, " "));
+    int plid = atoi(strtok(buffer, " "));
     strcpy(trial, strtok(NULL, " "));
     for (int i = 0; i < 3; i++){
         strcat(trial, strtok(NULL, " "));
@@ -158,37 +190,42 @@ void process_player_try(char *input, char **response, time_t current_seconds){
     int check = check_n_send_colors(trial);
     int nr_tries = atoi(strtok(NULL, " "));
 
-    // OPEN FILE
-    sprintf(game_file_dir, "%s%s%d", GAME_DIR, GAME_FILE_PREFIX, plid);
-    game_file_dir[strlen(game_file_dir)] == '\0';
-    FILE *file = fopen(game_file_dir, "a+");
-    if(file == NULL){
-        perror("[Error]: openning file.\n");
+    char game_file_dir[PLID_LEN + strlen(GAME_FILE_PREFIX) + strlen(GAME_DIR) +1];
+    sprintf(game_file_dir, "%s%s%d",GAME_DIR, GAME_FILE_PREFIX, plid);
+    game_file_dir[strlen(game_file_dir)] = '\0';
+
+    //caso do NOK
+    if (access(game_file_dir, F_OK) != 0) {
+        *response = (char*) malloc(sizeof(char) * TRY_NOK_LEN);
+        sprintf(*response, "%s %s\n", TRY_RESPONSE, NOK_STATUS);
         return;
     }
+
+    FILE *file = fopen(game_file_dir, "a+"); //open file
 
     //caso do DUP
     int nr_real_tries = check_tries(file, trial);
     if (nr_real_tries == -1) {
-        *response = (char*) malloc(sizeof(char) * DUP_LEN);
+        *response = (char*) malloc(sizeof(char) * TRY_DUP_LEN);
         sprintf(*response, "%s %s\n", TRY_RESPONSE, DUP_STATUS);
         return;
     }
     //caso do INV
     if (nr_real_tries != nr_tries) {
-        printf("alo fam\n");
-        *response = (char*) malloc(sizeof(char) * INV_LEN);
+        *response = (char*) malloc(sizeof(char) * TRY_INV_LEN);
         sprintf(*response, "%s %s\n", TRY_RESPONSE, INV_STATUS);
         return;
     }
     //caso do ERR
     if (check == -1) {
-        *response = (char*) malloc(sizeof(char) * ERR_LEN);
+        *response = (char*) malloc(sizeof(char) * TRY_ERR_LEN);
         sprintf(*response, "%s %s\n", TRY_RESPONSE, ERR_STATUS);
         return;
     }
-    write_on_file(file, game_file_dir, trial, &ans_check, plid, current_seconds, nr_tries);
 
+    write_on_file_try(file, game_file_dir, trial, &ans_check, plid, current_seconds, nr_tries);
+
+    //caso do ENT
     if (ans_check[0] != '4' && nr_tries == 8) {
         fseek(file, 8, SEEK_SET);
 
@@ -204,14 +241,14 @@ void process_player_try(char *input, char **response, time_t current_seconds){
             }   
         }
         printf("%s\n", ans);
-        *response = (char*) malloc(sizeof(char) * ENT_LEN);
+        *response = (char*) malloc(sizeof(char) * TRY_ENT_LEN);
         sprintf(*response, "%s %s %s\n", TRY_RESPONSE, ENT_STATUS, ans);
         printf("R: %s", *response);
         free(ans_in_file);
     }
     else {
-        *response = (char*) malloc(sizeof(char) * OK_LEN);
-        sprintf(*response, "%s %s %s\n", TRY_RESPONSE, OK_STATUS, ans_check);
+        *response = (char*) malloc(sizeof(char) * TRY_OK_LEN);
+        sprintf(*response, "%s %s %d %s\n", TRY_RESPONSE, OK_STATUS, nr_real_tries, ans_check);
         printf("R: %s", *response);
     }
 
@@ -219,12 +256,12 @@ void process_player_try(char *input, char **response, time_t current_seconds){
     free(trial);
     free(ans_check);
 }
-
+/*
 int main(){
     char *response;
     char *input = "TRY 107177 G P Y G 8\n";
     time_t current_seconds = time(NULL);
-    process_player_try(input, &response, current_seconds);
+    process_player_try(file, input, &response, current_seconds);
     free(response);
 
-}
+}*/

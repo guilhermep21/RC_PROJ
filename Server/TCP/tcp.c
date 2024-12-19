@@ -1,4 +1,4 @@
-#include "TCP.h"
+#include "tcp.h"
 #include "../constants.h"
 #include <stdio.h>
 #include <stdlib.h>

@@ -14,12 +14,16 @@
 #include <signal.h>
 #include <errno.h>
 #include <fcntl.h>
-
+#include "server.h"
+#include "UDP/try.h"
+#include "UDP/start.h"
+#include "UDP/quit.h"
+#include "UDP/debug.h"
 
 int aid;
 
 int verbose = FALSE;
-char *port = "58000";
+char *port = "58074";
 
 // initialize variable in case of incomplete command
 
@@ -59,25 +63,40 @@ void validate_args(int argc, char** argv) {
             default:
                 fprintf(stderr, "Usage: %s [-n ip] [-p port]\n", argv[0]);
                 exit(EXIT_FAILURE);
+        
         }
     }
 }
 
 void check_UDP_command(cmds command, int fd, struct sockaddr_in addr, socklen_t addrlen) {
-
+    char plid[7];
+    memcpy(plid, command.input, 7);
+    plid[7] = '\0';
+    
     char* response = NULL;
+    time_t current_seconds = time(NULL);
+
 
     printf("Command: %s, with len: %ld\n", command.cmd, strlen(command.cmd));
 
-    if (strcmp(command.cmd, "SNG") == 0){
+    if (strcmp(command.cmd, "SNG") == 0) {
         process_player_start(command.input, &response);
-    } else if (strcmp(command.cmd, "TRY") == 0){
-        process_try(command.input, &response);
-    } else if (strcmp(command.cmd, "QUT") == 0){
-        process_quit(command.input, &response);
-    } else if (strcmp(command.cmd, "DBG") == 0){
-        process_debug(command.input, &response);
-    } else {
+    } 
+    
+    else if (strcmp(command.cmd, "DBG") == 0){
+        process_player_debug(command.input, &response);
+    } 
+    
+    
+    else if (strcmp(command.cmd, "TRY") == 0) {
+        process_player_try(command.input, &response, current_seconds);
+    } 
+    
+    else if (strcmp(command.cmd, "QUT") == 0) {
+        process_player_quit(command.input, &response, current_seconds);
+    } 
+    
+    else {
         printf("Invalid command\n");
     }
     
@@ -101,7 +120,7 @@ void check_UDP_command(cmds command, int fd, struct sockaddr_in addr, socklen_t 
         free(response);
 }
 
-int create_udp_socket(){
+int create_udp_socket() {
     int fd, errcode;
     ssize_t n;
     struct addrinfo hints, *res;
@@ -148,6 +167,7 @@ void read_udp_socket(int fd) {
     n = recvfrom(fd, buffer, 128, 0, (struct sockaddr *)&addr, &addrlen);
     buffer[n] = '\0';
     buffer[n - 1] = '\0';
+    printf("buffer: %s\n", buffer);
 
 
     if (n == -1) {
@@ -161,11 +181,23 @@ void read_udp_socket(int fd) {
     memcpy(command.cmd, buffer, 4); 
     command.cmd[3] = '\0'; 
 
+    size_t input_length = strlen(buffer) - 4;
+    command.input = (char* ) malloc((input_length + 1) * sizeof(char)); // Allocate memory for input
+    if (command.input == NULL) {
+        printf("Error allocating memory for input\n");
+        exit(1);
+    }
+
+    memcpy(command.input, buffer + 4, input_length); 
+    command.input[input_length] = '\0';
+
     // process commands here
     check_UDP_command(command, fd, addr, addrlen);    
 
     printf("Finished processing UDP command\n");
+    free(command.input);
 }
+
 
 void check_TCP_command(char *command, int fd){
 
@@ -200,13 +232,14 @@ void check_TCP_command(char *command, int fd){
     }   
 }
 
+
 int create_tcp_socket(){
 
     int errcode;
     struct addrinfo hints, *res;
-    // struct timeval timeout;
-    // timeout.tv_sec = 5;
-    // timeout.tv_usec = 0;
+    struct timeval timeout;
+    timeout.tv_sec = 5;
+    timeout.tv_usec = 0;
 
     int fd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -215,11 +248,11 @@ int create_tcp_socket(){
         exit(1);
     }
 
-    // if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof timeout) < 0 ||
-    //     setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof timeout) < 0) {
-    //     printf("Error setting socket options.\n");
-    //     return -1;
-    // }
+    if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof timeout) < 0 ||
+        setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof timeout) < 0) {
+        printf("Error setting socket options.\n");
+        return -1;
+    }
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_INET;      // IPv4
@@ -231,7 +264,7 @@ int create_tcp_socket(){
 
     errcode = getaddrinfo(NULL, port, &hints, &res);
     if ((errcode) != 0){
-        /*error*/
+        //error
         fprintf(stderr, "Error getting TCP address info\n");
         exit(1);
     }
@@ -239,19 +272,20 @@ int create_tcp_socket(){
     ssize_t n = bind(fd,res->ai_addr,res->ai_addrlen);
 
     if (n == -1){
-        /*error*/ 
+        //error
         fprintf(stderr, "Error binding TCP socket\n");
         exit(1);
     }
 
     if (listen(fd, 20) == -1){
-        /*error*/
+        //error
         fprintf(stderr, "Error listening TCP socket\n");
         exit(1);
     }
 
     return fd;
 }
+
 
 void read_tcp_socket(int fd){
 
@@ -260,7 +294,7 @@ void read_tcp_socket(int fd){
     char command[4];
     ssize_t n = read_word(fd, command, 4);
     if (n == -1) {
-        /*error*/
+        //error
         fprintf(stderr, "Error reading from TCP socket\n");
         exit(1);
     }
@@ -269,6 +303,7 @@ void read_tcp_socket(int fd){
 
     check_TCP_command(command, fd);
 }
+
 
 /**
   * 
@@ -310,6 +345,7 @@ int main(int argc, char** argv){
 
         fd_set readfds = activefds;
 
+        maxfd = udp_sock;
         maxfd = udp_sock > tcp_sock ? udp_sock : tcp_sock;
 
         if (select(maxfd + 1, &readfds, NULL, NULL, NULL) == -1) {
@@ -320,7 +356,7 @@ int main(int argc, char** argv){
         if (FD_ISSET(udp_sock, &readfds)) {
             read_udp_socket(udp_sock);
         }
-
+        
         if (FD_ISSET(tcp_sock, &readfds)) {
 
             struct sockaddr_in client_addr;
@@ -335,7 +371,7 @@ int main(int argc, char** argv){
             }
 
             read_tcp_socket(tcp_client_socket);
-
+            
             printf("Shutting down TCP client socket\n");
             if (shutdown(tcp_client_socket, SHUT_WR) == -1) {
                 perror("shutdown");
@@ -345,6 +381,7 @@ int main(int argc, char** argv){
             // Close the TCP client socket when done
             printf("Closing TCP client socket\n");
             close(tcp_client_socket);
+            
         }
     }
 
