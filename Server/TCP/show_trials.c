@@ -20,7 +20,7 @@ int FindLastGame (char *PLID , char *fname){
     char dirname [20];
 
     //sprintf(dirname, "GAMES/%s/", PLID);
-    sprintf(dirname, "../GAMES/%s/", PLID);
+    sprintf(dirname, "GAMES/%s/", PLID);
 
     n_entries = scandir (dirname, &filelist, 0, alphasort) ;
 
@@ -31,7 +31,7 @@ int FindLastGame (char *PLID , char *fname){
     else {
     while (n_entries--) {
         if (filelist [n_entries]->d_name[0] != '.' && ! found){
-            sprintf(fname, "../GAMES/%s/%s" ,PLID , filelist[n_entries]->d_name);
+            sprintf(fname, "GAMES/%s/%s" ,PLID , filelist[n_entries]->d_name);
             found =1;
         }
         free(filelist[n_entries]);

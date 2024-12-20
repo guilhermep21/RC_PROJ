@@ -19,8 +19,8 @@
 #include "UDP/start.h"
 #include "UDP/quit.h"
 #include "UDP/debug.h"
-
-int aid;
+#include "TCP/show_trials.h"
+#include "TCP/scoreboard.h"
 
 int verbose = FALSE;
 char *port = "58074";
@@ -30,7 +30,7 @@ char *port = "58074";
 // create signal handler for SIGINT that closes sockets fds
 
 int udp_sock = -1;
-//int tcp_sock = -1;
+int tcp_sock = -1;
 
 void sigint_handler(int sig) {
     (void) sig;
@@ -39,11 +39,11 @@ void sigint_handler(int sig) {
     if (udp_sock != -1) {
         close(udp_sock);
     }
-    /*
+    
     if (tcp_sock != -1) {
         close(tcp_sock);
     }
-    */
+    
     exit(0);
 }
 
@@ -66,6 +66,30 @@ void validate_args(int argc, char** argv) {
         
         }
     }
+}
+
+int read_word(int fd, char *buffer, int size) {
+    int i = 0;
+    while (i < size) {
+        if (read(fd, buffer + i, sizeof(char)) == -1) {
+            printf("Error while reading from socket.\n");
+            buffer = NULL;
+            return -1;
+        }
+        if (buffer[i] == ' ' || buffer[i] == '\n') {
+            printf("finished reading word\n");
+            memset(buffer + i, '\0', 1);
+            break;
+        }
+        if (i == size) {
+            printf("End of word not found.\n");
+            buffer = NULL;
+            return -1;
+        }
+        printf("buffer[%d]: %c\n", i, buffer[i]);
+        i++;
+    }
+    return 0;
 }
 
 void check_UDP_command(cmds command, int fd, struct sockaddr_in addr, socklen_t addrlen) {
@@ -198,15 +222,23 @@ void read_udp_socket(int fd) {
     free(command.input);
 }
 
-/*
+
 void check_TCP_command(char *command, int fd){
 
     char* response = NULL;
     
     if (strcmp(command, "STR") == 0){
-        process_show__trials(fd,  &aid, &response);
+        char input[7];
+        lseek(fd, 4, SEEK_SET);
+        ssize_t n = read_word(fd, input, 7);
+        if (n == -1) {
+            //error
+            fprintf(stderr, "Error reading from TCP socket\n");
+            exit(1);
+        }
+        process_player_show_trials(input, &response);
     } else if (strcmp(command, "SSB") == 0){
-        process_scoreboard(fd, &response);
+        process_player_scoreboard(&response);
     }
 
     // send response to client through TCP socket
@@ -303,7 +335,7 @@ void read_tcp_socket(int fd){
 
     check_TCP_command(command, fd);
 }
-*/
+
 
 /**
   * 
@@ -328,11 +360,8 @@ int main(int argc, char** argv){
     udp_sock = create_udp_socket();
     printf("udp_sock: %d\n", udp_sock);
 
-    //tcp_sock = create_tcp_socket();
-    //printf("tcp_sock: %d\n", tcp_sock);
-
-    //aid = get_global_aid_number();
-    //printf("aid: %d\n", aid);
+    tcp_sock = create_tcp_socket();
+    printf("tcp_sock: %d\n", tcp_sock);
 
     int maxfd;
     fd_set activefds;
@@ -341,12 +370,12 @@ int main(int argc, char** argv){
 
         FD_ZERO(&activefds);
         FD_SET(udp_sock, &activefds);
-        //FD_SET(tcp_sock, &activefds);
+        FD_SET(tcp_sock, &activefds);
 
         fd_set readfds = activefds;
 
         maxfd = udp_sock;
-        //maxfd = udp_sock > tcp_sock ? udp_sock : tcp_sock;
+        maxfd = udp_sock > tcp_sock ? udp_sock : tcp_sock;
 
         if (select(maxfd + 1, &readfds, NULL, NULL, NULL) == -1) {
             perror("select");
@@ -356,7 +385,7 @@ int main(int argc, char** argv){
         if (FD_ISSET(udp_sock, &readfds)) {
             read_udp_socket(udp_sock);
         }
-        /*
+        //fork aqui algures
         if (FD_ISSET(tcp_sock, &readfds)) {
 
             struct sockaddr_in client_addr;
@@ -381,12 +410,11 @@ int main(int argc, char** argv){
             // Close the TCP client socket when done
             printf("Closing TCP client socket\n");
             close(tcp_client_socket);
-            
-        }*/
+        }
     }
 
     // Close sockets
-    //close(tcp_sock);
+    close(tcp_sock);
     close(udp_sock);
 
     return 0;

@@ -5,9 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-int process_scoreboard(TCP_response** response){
-
-
+int process_scoreboard(TCP_response** response) {
     (*response)->msg = (char *) malloc(sizeof(char) * SCOREBOARD_LEN);
     (*response)->file = (file *) malloc(sizeof(file));
     (*response)->file->code = FILE_TO_BE_RECEIVED;

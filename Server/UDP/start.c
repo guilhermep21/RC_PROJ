@@ -13,9 +13,6 @@
 #include <time.h>
 #include "../constants.h"
 
-
-
-
 char *randomAnsGen() {
     srand(time(NULL));
     char *resultado = malloc(4 * sizeof(char));
@@ -59,6 +56,7 @@ int create_user_gm_dir(char *userid) {
 
 
 int create_game_start_file(char *game_file, char *userid, char *time_player) {
+    printf("file name: %s\n", game_file);
     FILE *f_game = fopen(game_file, "w");
 
     if(f_game == NULL){

@@ -23,7 +23,7 @@ int FindTopScores(SCORELIST *list)
     char mode[8];
     char buffer[24];
 
-    n_entries = scandir("../SCORES/", &filelist, 0, alphasort);
+    n_entries = scandir("SCORES/", &filelist, 0, alphasort);
 
     if (n_entries <= 0)
         return (0);
@@ -34,7 +34,7 @@ int FindTopScores(SCORELIST *list)
         {
             if (filelist[n_entries]->d_name[0] != '.' && i_file < 10)
             {
-                sprintf(fname, "../SCORES/%s", filelist[n_entries]->d_name);
+                sprintf(fname, "SCORES/%s", filelist[n_entries]->d_name);
                 fp = fopen(fname, "r");
                 if (fp != NULL)
                 {
