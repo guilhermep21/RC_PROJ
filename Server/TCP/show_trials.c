@@ -103,32 +103,41 @@ void process_player_show_trials(char *input, char **response){
     int in_game = 0;
     time_t current_time = time(NULL);
     FILE *game_file;
-    char *game_file_dir = malloc(64 * sizeof(char));
+    char *last_game_dir = malloc(64 * sizeof(char));
     char plid[7];
-    char RSG_status[8];
-    char user_games_dir[strlen(GAME_DIR) + strlen(GAME_FILE_PREFIX) + PLID_LEN + 3];
+    char RSG_status[9];
+    char active_game_dir[strlen(GAME_DIR) + strlen(GAME_FILE_PREFIX) + PLID_LEN + 3];
     strcpy(plid, input);
     plid[strlen(input)] = '\0';
-    sprintf(user_games_dir, "../%s%s%s", GAME_DIR, GAME_FILE_PREFIX, plid);
+    sprintf(active_game_dir, "%s%s%s", GAME_DIR, GAME_FILE_PREFIX, plid);
+    int n = FindLastGame(plid, last_game_dir);
 
     char *fname = malloc(10 * sizeof(char));
     sprintf(fname, "st_%s", plid);
 
-    //se está ingame
-    if(access(user_games_dir, F_OK) == 0){
-        game_file = fopen(user_games_dir, "r");
+    // caso NOK
+    if((access(active_game_dir, F_OK) != 0) && (access(last_game_dir, F_OK) != 0)){
+        *response = (char*) malloc(sizeof(char) * RST_NOK_LEN);
+        sprintf((*response), "%s %s\n", SHOW_TRIALS_RESPONSE, NOK_STATUS);
+        free(fname);
+        return;
+    }
+
+    // caso ACT
+    if(access(active_game_dir, F_OK) == 0){
+        game_file = fopen(active_game_dir, "r");
         if (game_file == NULL)
         {
             printf("Erro ao abrir ficheiro\n");
             return;
         }
+        sprintf(RSG_status,"%s %s ", SHOW_TRIALS_RESPONSE, ACT_STATUS);
         in_game = 1;
     }
-    //vai buscar o ultimo jogo
+    // caso FIN
     else{
-        int n = FindLastGame(plid, game_file_dir);
         if(n == 1){
-            game_file = fopen(game_file_dir, "r");
+            game_file = fopen(last_game_dir, "r");
             if(game_file == NULL){
                 printf("Erro ao abrir ficheiro\n");
                 return;
@@ -138,20 +147,19 @@ void process_player_show_trials(char *input, char **response){
             printf("No games found\n");
             return;
         }    
+        sprintf(RSG_status,"%s %s ", SHOW_TRIALS_RESPONSE, FIN_STATUS);
     }
     char *fdata = show_trials_write(game_file, plid, current_time, in_game);
     int fsize = strlen(fdata);
     char fsize_str[6];
     sprintf(fsize_str, "%d", fsize);
-    sprintf(RSG_status,"%s %s ", SHOW_TRIALS_RESPONSE, OK_STATUS);
-    strcat(buffer, RSG_status);
+    strcpy(buffer, RSG_status);
     strcat(buffer, fname);
     strcat(buffer, " ");
     strcat(buffer, fsize_str);
     strcat(buffer, " ");
     strcat(buffer, fdata);
     int buffer_size = strlen(buffer);
-    printf("%s", buffer);
 
     *response = malloc(buffer_size * sizeof(char) + 1);
     strcpy(*response, buffer);
@@ -173,10 +181,9 @@ int main(){
 
     process_player_show_trials(plid, &response);
 
-    //printf("%s", response);
+    printf("%s", response);
 
     free(response);
-}*/ 
-
+}*/
 
 

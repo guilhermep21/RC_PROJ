@@ -21,6 +21,7 @@ int FindTopScores(SCORELIST *list)
     char fname[300];
     FILE *fp;
     char mode[8];
+    char buffer[24];
 
     n_entries = scandir("../SCORES/", &filelist, 0, alphasort);
 
@@ -34,20 +35,15 @@ int FindTopScores(SCORELIST *list)
             if (filelist[n_entries]->d_name[0] != '.' && i_file < 10)
             {
                 sprintf(fname, "../SCORES/%s", filelist[n_entries]->d_name);
-                printf("fname: %s\n", fname);
                 fp = fopen(fname, "r");
-                if(fp == NULL){
-                    printf("nao ABRE O FICHEIRO.\n");
-                }
                 if (fp != NULL)
                 {
-                    fscanf(fp, "%d_%s_%s_%d_%s",
-                           &list->score[i_file], 
-                           list->PLID[i_file], 
-                           list->col_code[i_file], 
-                           &list->no_tries[i_file], 
-                           mode);
-
+                    fgets(buffer, 24, fp);
+                    list->score[i_file] = atoi(strtok(buffer, " "));
+                    strcpy(list->PLID[i_file], strtok(NULL, " "));
+                    strcpy(list->col_code[i_file], strtok(NULL, " "));
+                    list->no_tries[i_file] = atoi(strtok(NULL, " "));
+                    strcpy(mode, strtok(NULL, " "));
                     if (!strcmp(mode, "PLAY"))
                         list->mode[i_file] = MODE_PLAY;
                     if (!strcmp(mode, "DEBUG"))
@@ -84,8 +80,13 @@ void process_player_scoreboard(char **response){
         sprintf((*response), "%s %s %s %d ", SCOREBOARD_RESPONSE, OK_STATUS, fname, fsize);
         
         while(TRUE) {
-            if (i == 10 || &list->score[i] == NULL)
+            if (i == 10 || list->score[i] == 0)
                 break;
+
+            char score_str[2];
+            sprintf(score_str, "%d", list->score[i]);
+            strcat(*response, score_str);
+            strcat(*response, " ");
             strcat(*response, list->PLID[i]);
             strcat(*response, " ");
             strcat(*response, list->col_code[i]);
@@ -95,17 +96,16 @@ void process_player_scoreboard(char **response){
             sprintf(no_tries_str, "%d", list->no_tries[i]);
             strcat(*response, no_tries_str);
             strcat(*response, "\n");
-            printf("%s\n", *response);
             i++;
         }
         strcat(*response, "\0");  
     }   
     free(list);
 }
-
+/*
 int main() {
     char *response;
     process_player_scoreboard(&response);
     printf("%s\n", response);
     free(response);
-}
+}*/

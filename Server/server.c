@@ -30,7 +30,7 @@ char *port = "58074";
 // create signal handler for SIGINT that closes sockets fds
 
 int udp_sock = -1;
-int tcp_sock = -1;
+//int tcp_sock = -1;
 
 void sigint_handler(int sig) {
     (void) sig;
@@ -39,11 +39,11 @@ void sigint_handler(int sig) {
     if (udp_sock != -1) {
         close(udp_sock);
     }
-    
+    /*
     if (tcp_sock != -1) {
         close(tcp_sock);
     }
-    
+    */
     exit(0);
 }
 
@@ -198,7 +198,7 @@ void read_udp_socket(int fd) {
     free(command.input);
 }
 
-
+/*
 void check_TCP_command(char *command, int fd){
 
     char* response = NULL;
@@ -303,7 +303,7 @@ void read_tcp_socket(int fd){
 
     check_TCP_command(command, fd);
 }
-
+*/
 
 /**
   * 
@@ -328,11 +328,11 @@ int main(int argc, char** argv){
     udp_sock = create_udp_socket();
     printf("udp_sock: %d\n", udp_sock);
 
-    tcp_sock = create_tcp_socket();
-    printf("tcp_sock: %d\n", tcp_sock);
+    //tcp_sock = create_tcp_socket();
+    //printf("tcp_sock: %d\n", tcp_sock);
 
-    aid = get_global_aid_number();
-    printf("aid: %d\n", aid);
+    //aid = get_global_aid_number();
+    //printf("aid: %d\n", aid);
 
     int maxfd;
     fd_set activefds;
@@ -341,12 +341,12 @@ int main(int argc, char** argv){
 
         FD_ZERO(&activefds);
         FD_SET(udp_sock, &activefds);
-        FD_SET(tcp_sock, &activefds);
+        //FD_SET(tcp_sock, &activefds);
 
         fd_set readfds = activefds;
 
         maxfd = udp_sock;
-        maxfd = udp_sock > tcp_sock ? udp_sock : tcp_sock;
+        //maxfd = udp_sock > tcp_sock ? udp_sock : tcp_sock;
 
         if (select(maxfd + 1, &readfds, NULL, NULL, NULL) == -1) {
             perror("select");
@@ -356,7 +356,7 @@ int main(int argc, char** argv){
         if (FD_ISSET(udp_sock, &readfds)) {
             read_udp_socket(udp_sock);
         }
-        
+        /*
         if (FD_ISSET(tcp_sock, &readfds)) {
 
             struct sockaddr_in client_addr;
@@ -382,11 +382,11 @@ int main(int argc, char** argv){
             printf("Closing TCP client socket\n");
             close(tcp_client_socket);
             
-        }
+        }*/
     }
 
     // Close sockets
-    close(tcp_sock);
+    //close(tcp_sock);
     close(udp_sock);
 
     return 0;

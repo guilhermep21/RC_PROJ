@@ -24,6 +24,7 @@ int check_tries (FILE *file, char *trial) {
     char buffer[256]; // Buffer for a line
     int nr_lines = 0;
     int counter = 0;
+    
     while (fgets(buffer, sizeof(buffer), file)) {
         nr_lines++;
         for (int i = 3; i < 7; i++) {

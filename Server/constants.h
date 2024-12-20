@@ -28,11 +28,11 @@
 #define FILE_NAME_MAX_LEN   24
 
 #define GAME_FILE_PREFIX    "GAME_"
-#define GAME_DIR            "GAMES/"
+#define GAME_DIR            "../GAMES/"
 
-#define SCORE_DIR           "../SCORES/"
+#define SCORE_DIR           "SCORES/"
 
-#define SCORE_FILE_DIR_LEN  36
+#define SCORE_FILE_DIR_LEN  33
 
 #define GAME_FILE_LEN       11
 #define GAME_DIR_LEN        6
