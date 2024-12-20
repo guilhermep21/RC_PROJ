@@ -11,7 +11,6 @@ int process_scoreboard(TCP_response** response) {
     (*response)->file->code = FILE_TO_BE_RECEIVED;
 
     int return_code = sprintf((*response)->msg, "%s\n", SCOREBOARD_CMD);
-
     if(return_code < 0){
         fprintf(stderr, "error: open\n");
         return -1;
